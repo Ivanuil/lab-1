@@ -8,18 +8,31 @@ function monitor_disk_space {
         time=$(date +"%Y-%m-%d_%H:%M:%S")
         date=$(date +"%Y-%m-%d")
 
+        # Паратметры утилизации диского пространства
+        disk_have=$(df -h | tail -n 1 | awk '{print $2}')
+        disk_avaiable=$(df -h | tail -n 1 | awk '{print $3}')
+
+        # Паратметры утилизации inode
+        inode_have=$(df -h -i | tail -n 1 | awk '{print $2}')
+        inode_avaliable=$(df -h -i | tail -n 1 | awk '{print $3}')
+
         # Создаем файл для хранения данных мониторинга
         file="/tmp/disk_space_${date}.csv"
 
-        # Получаем информацию о дисковом пространстве и количестве свободных inode
-        df -h | grep -v Filesystem | awk '{print $5}'
-        free -m | grep "Inode" | awk '{print $4}'
-
         # Добавляем данные в файл мониторинга
-        echo "$(time),$(df -h | grep -v Filesystem | awk '{print $5}'),$(free -m | grep "Inode" | awk '{print $4}')" >> "$file"
+        echo "$time,$disk_have,$disk_avaiable,$inode_have,$inode_avaliable" >> "$file"
 
         sleep 10 # Задержка между проверками
     done
+}
+
+function status {
+    pgrep -f "monitor_disk_space"
+    if [ $# -eq 0 ]; then
+        echo "Мониторинг запущен."
+    else
+        echo "Мониторинг не запущен."
+    fi
 }
 
 if [ "$1" == "START" ]; then
@@ -31,11 +44,7 @@ elif [ "$1" == "STOP" ]; then
     kill $2
     echo "Мониторинг остановлен."
 elif [ "$1" == "STATUS" ]; then
-    # if [ pgrep -f "disk_space_monitor" > /dev/null ]; then
-    #     echo "Мониторинг запущен."
-    # else
-    #     echo "Мониторинг не запущен."
-    echo "t"
+    status
 else
     echo "Неизвестная команда."
 fi
